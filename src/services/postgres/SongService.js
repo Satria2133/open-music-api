@@ -34,14 +34,44 @@ class SongService {
     async getSong(id) {
         const statement = {
             text: 'SELECT * FROM songs WHERE id = $1',
+            values: [id]
+        }
+        const result = await this._pool.query(statement);
+
+        if(!result.rows.length){
+            throw new NotFoundError('Song tidak ditemukan');
         }
 
-    }
-
-    async editSong(id, { title, year, performer, genre, duration }) {
+        return result.rows.map(mapDBToModel)[0];
 
     }
 
+    async editSongbyId(id, { title, year, performer, genre, duration }) {
+        const updateAt = new Date().toISOString();
+        const statement = {
+            text: 'UPDATE songs SET title = $1, year = $2, performer = $3, genre = $4, duration = $5, update_at = $6 WHERE id = $7 RETURNING id',
+            values: [title, year, performer, genre, duration, updateAt, id]
+        };
+
+        const result = await this._pool.query(statement);
+
+        if(!result.rows.length){
+            throw new NotFoundError('Gagal memperbarui song. Id tidak ditemukan');
+        }
+    }
+
+    async deleteSongById(id) {
+        const statement = {
+            text: 'DELETE FROM songs WHERE id = $1 RETURNING id',
+            values: [id]
+        };
+
+        const result = await this._pool.query(statement);
+
+        if(!result.rows.length){
+            throw new NotFoundError('Song gagal dihapus. Id tidak ditemukan');
+        }
+    }
 }
 
 module.exports = SongService;
