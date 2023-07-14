@@ -1,5 +1,4 @@
 /* eslint-disable no-underscore-dangle */
-const InvariantError = require('../../exceptions/InvariantError');
 const NotFoundError = require('../../exceptions/NotFoundError');
 const ClientError = require('../../exceptions/ClientError');
 
@@ -119,12 +118,12 @@ class AlbumService {
       response.code(200);
       return response;
     } catch (error) {
-      if (error instanceof InvariantError) {
+      if (error instanceof ClientError) {
         const response = h.response({
           status: 'fail',
           message: error.message,
         });
-        response.code(400);
+        response.code(error.statusCode);
         return response;
       }
 
@@ -150,12 +149,12 @@ class AlbumService {
       response.code(200);
       return response;
     } catch (error) {
-      if (error instanceof NotFoundError) {
+      if (error instanceof ClientError) {
         const response = h.response({
           status: 'fail',
           message: error.message,
         });
-        response.code(404);
+        response.code(error.statusCode);
         return response;
       }
       // SERVER ERROR !
