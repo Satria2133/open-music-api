@@ -1,5 +1,4 @@
 /* eslint-disable no-underscore-dangle */
-const NotFoundError = require('../../exceptions/NotFoundError');
 const ClientError = require('../../exceptions/ClientError');
 
 class AlbumService {
@@ -87,12 +86,12 @@ class AlbumService {
       response.code(200);
       return response;
     } catch (error) {
-      if (error instanceof NotFoundError) {
+      if (error instanceof ClientError) {
         const response = h.response({
           status: 'fail',
           message: error.message,
         });
-        response.code(404);
+        response.code(error.statusCode);
         return response;
       }
       // Server ERROR!

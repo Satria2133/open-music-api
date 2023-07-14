@@ -27,24 +27,24 @@ class AlbumService {
   }
 
   async getAlbum(id) {
-    const stmt = {
+    const statement = {
       text: 'SELECT * FROM albums WHERE id = $1',
       values: [id],
     };
 
-    const result = await this._pool.query(stmt);
+    const result = await this._pool.query(statement);
 
     if (!result.rows.length) {
       throw new NotFoundError('Album tidak ditemukan');
     }
 
     const album = result.rows[0];
-    const songsStmt = {
+    const songsstatement = {
       text: 'SELECT id, title, performer FROM songs WHERE id = $1',
       values: [id],
     };
 
-    const songs = await this._pool.query(songsStmt);
+    const songs = await this._pool.query(songsstatement);
 
     if (songs.rows.length > 0) {
       album.songs = songs.rows;
@@ -54,12 +54,12 @@ class AlbumService {
   }
 
   async updateAlbum(id, { name, year }) {
-    const stmt = {
+    const statement = {
       text: 'UPDATE albums SET name = $1, year = $2 WHERE id = $3 RETURNING id',
       values: [name, year, id],
     };
 
-    const result = await this._pool.query(stmt);
+    const result = await this._pool.query(statement);
 
     if (!result.rows.length) {
       throw new NotFoundError('Album tidak ditemukan');
@@ -67,12 +67,12 @@ class AlbumService {
   }
 
   async deleteAlbum(id) {
-    const stmt = {
+    const statement = {
       text: 'DELETE FROM albums WHERE id = $1 RETURNING id',
       values: [id],
     };
 
-    const result = await this._pool.query(stmt);
+    const result = await this._pool.query(statement);
 
     if (!result.rows.length) {
       throw new NotFoundError('Album tidak ditemukan');
