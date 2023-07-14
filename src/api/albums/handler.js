@@ -1,7 +1,7 @@
 /* eslint-disable no-underscore-dangle */
-const { nanoid } = require('nanoid');
 const InvariantError = require('../../exceptions/InvariantError');
 const NotFoundError = require('../../exceptions/NotFoundError');
+const ClientError = require('../../exceptions/ClientError');
 
 class AlbumService {
   constructor(service, validator) {
@@ -15,78 +15,155 @@ class AlbumService {
     this.deleteAlbumbyIdHandler = this.deleteAlbumbyIdHandler.bind(this);
   }
 
-  async postAlbumHandler({ name, year }) {
-    const id = nanoid(16);
+  async postAlbumHandler(request, h) {
+    try {
+      this._validator.validateAlbumPayload(request.payload);
+      const { name, year } = request.payload;
+      const albumId = await this._service.addAlbum({ name, year });
+      const response = h.response({
+        status: 'success',
+        message: 'Album berhasil ditambahkan',
+        data: {
+          albumId,
+        },
+      });
+      response.code(201);
+      return response;
+    } catch (error) {
+      if (error instanceof ClientError) {
+        const response = h.response({
+          status: 'fail',
+          message: error.message,
+        });
+        response.code(400);
+        return response;
+      }
 
-    const statement = {
-      text: 'INSERT INTO albums VALUES ($1, $2, $3) RETURNING id',
-      values: [id, name, year],
-    };
-
-    const result = await this._pool.query(statement);
-
-    if (!result.rows[0].id) {
-      throw new InvariantError('Album gagal ditambahkan');
-    }
-
-    return result.rows[0].id;
-  }
-
-  async getAlbumsHandler() {
-    const result = await this._pool.query('SELECT id, name, year FROM albums');
-    return result.rows;
-  }
-
-  async getAlbumbyIdHandler(id) {
-    const statement = {
-      text: 'SELECT * FROM albums WHERE id = $1',
-      values: [id],
-    };
-
-    const result = await this._pool.query(statement);
-
-    if (!result.rows.length) {
-      throw new NotFoundError('Album tidak ditemukan');
-    }
-
-    const album = result.rows[0];
-    const songsstatement = {
-      text: 'SELECT id, title, performer FROM songs WHERE album_id = $1',
-      values: [album.id],
-    };
-
-    const songs = await this._pool.query(songsstatement);
-
-    if (songs.rows.length > 0) {
-      album.songs = songs.rows;
-    }
-
-    return album;
-  }
-
-  async updateAlbumbyIdHandler(id, { name, year }) {
-    const statement = {
-      text: 'UPDATE albums SET name = $1, year = $2 WHERE id = $3 RETURNING id',
-      values: [name, year, id],
-    };
-
-    const result = await this._pool.query(statement);
-
-    if (!result.rows.length) {
-      throw new NotFoundError('Album tidak ditemukan');
+      // Server ERROR!
+      const response = h.response({
+        status: 'error',
+        message: 'Maaf, terjadi kegagalan pada server kami.',
+      });
+      response.code(500);
+      console.error(error);
+      return response;
     }
   }
 
-  async deleteAlbumbyIdHandler(id) {
-    const statement = {
-      text: 'DELETE FROM albums WHERE id = $1 RETURNING id',
-      values: [id],
-    };
+  async getAlbumsHandler(request, h) {
+    try {
+      const albums = await this._service.getAlbums();
+      const response = h.response({
+        status: 'success',
+        data: {
+          albums,
+        },
+      });
+      response.code(200);
+      return response;
+    } catch (error) {
+      // Server ERROR!
+      const response = h.response({
+        status: 'error',
+        message: 'Maaf, terjadi kegagalan pada server kami.',
+      });
+      response.code(500);
+      console.error(error);
+      return response;
+    }
+  }
 
-    const result = await this._pool.query(statement);
+  async getAlbumbyIdHandler(request, h) {
+    try {
+      const { id } = request.params;
+      const album = await this._service.getAlbum(id);
+      const response = h.response({
+        status: 'success',
+        data: {
+          album,
+        },
+      });
+      response.code(200);
+      return response;
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        const response = h.response({
+          status: 'fail',
+          message: error.message,
+        });
+        response.code(404);
+        return response;
+      }
+      // Server ERROR!
+      const response = h.response({
+        status: 'error',
+        message: 'Maaf, terjadi kegagalan pada server kami.',
+      });
+      response.code(500);
+      console.error(error);
+      return response;
+    }
+  }
 
-    if (!result.rows.length) {
-      throw new NotFoundError('Album tidak ditemukan');
+  async updateAlbumbyIdHandler(request, h) {
+    try {
+      this._validator.validateAlbumPayload(request.payload);
+      const { id } = request.params;
+      await this._service.updateAlbum(id, request.payload);
+      const response = h.response({
+        status: 'success',
+        message: 'Album berhasil diperbarui',
+      });
+      response.code(200);
+      return response;
+    } catch (error) {
+      if (error instanceof InvariantError) {
+        const response = h.response({
+          status: 'fail',
+          message: error.message,
+        });
+        response.code(400);
+        return response;
+      }
+
+      // Server ERROR!
+      const response = h.response({
+        status: 'error',
+        message: 'Maaf, terjadi kegagalan pada server kami.',
+      });
+      response.code(500);
+      console.error(error);
+      return response;
+    }
+  }
+
+  async deleteAlbumbyIdHandler(request, h) {
+    try {
+      const { id } = request.params;
+      await this._service.deleteAlbum(id);
+      const response = h.response({
+        status: 'success',
+        message: 'Album berhasil dihapus',
+      });
+      response.code(200);
+      return response;
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        const response = h.response({
+          status: 'fail',
+          message: error.message,
+        });
+        response.code(404);
+        return response;
+      }
+      // SERVER ERROR !
+      const response = h.response({
+        status: 'error',
+        message: 'Maaf, terjadi kegagalan pada server kami.',
+      });
+      response.code(500);
+      console.error(error);
+      return response;
     }
   }
 }
