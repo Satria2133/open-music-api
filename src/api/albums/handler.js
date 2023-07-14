@@ -29,13 +29,15 @@ class AlbumService {
       });
       response.code(201);
       return response;
-    } catch (error) {
+    } catch
+    (error) {
+      console.error(error.statusCode);
       if (error instanceof ClientError) {
         const response = h.response({
           status: 'fail',
           message: error.message,
         });
-        response.code(400);
+        response.code(error.statusCode);
         return response;
       }
 
