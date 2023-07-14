@@ -1,15 +1,21 @@
 /* eslint-disable no-underscore-dangle */
 const { nanoid } = require('nanoid');
-const { Pool } = require('pg');
 const InvariantError = require('../../exceptions/InvariantError');
 const NotFoundError = require('../../exceptions/NotFoundError');
 
 class AlbumService {
-  constructor() {
-    this._pool = new Pool();
+  constructor(service, validator) {
+    this._service = service;
+    this._validator = validator;
+
+    this.postAlbumHandler = this.postAlbumHandler.bind(this);
+    this.getAlbumsHandler = this.getAlbumsHandler.bind(this);
+    this.getAlbumbyIdHandler = this.getAlbumbyIdHandler.bind(this);
+    this.updateAlbumbyIdHandler = this.updateAlbumbyIdHandler.bind(this);
+    this.deleteAlbumbyIdHandler = this.deleteAlbumbyIdHandler.bind(this);
   }
 
-  async addAlbum({ name, year }) {
+  async postAlbumHandler({ name, year }) {
     const id = nanoid(16);
 
     const statement = {
@@ -26,7 +32,12 @@ class AlbumService {
     return result.rows[0].id;
   }
 
-  async getAlbum(id) {
+  async getAlbumsHandler() {
+    const result = await this._pool.query('SELECT id, name, year FROM albums');
+    return result.rows;
+  }
+
+  async getAlbumbyIdHandler(id) {
     const statement = {
       text: 'SELECT * FROM albums WHERE id = $1',
       values: [id],
@@ -53,7 +64,7 @@ class AlbumService {
     return album;
   }
 
-  async updateAlbum(id, { name, year }) {
+  async updateAlbumbyIdHandler(id, { name, year }) {
     const statement = {
       text: 'UPDATE albums SET name = $1, year = $2 WHERE id = $3 RETURNING id',
       values: [name, year, id],
@@ -66,7 +77,7 @@ class AlbumService {
     }
   }
 
-  async deleteAlbum(id) {
+  async deleteAlbumbyIdHandler(id) {
     const statement = {
       text: 'DELETE FROM albums WHERE id = $1 RETURNING id',
       values: [id],
