@@ -23,6 +23,29 @@ class PlaylistsService {
     }
     return result.rows[0].id;
   }
+
+  async getPlaylists(owner) {
+    const query = {
+      text: `SELECT playlists.id, playlists.name, users.username FROM playlists
+      LEFT JOIN users ON users.id = playlists.owner
+      LEFT JOIN collaborations ON collaborations.playlist_id = playlists.id
+      WHERE playlists.owner = $1 OR collaborations.user_id = $1`,
+      values: [owner],
+    };
+    const result = await this._pool.query(query);
+    return result.rows;
+  }
+
+  async deletePlaylistById(id) {
+    const query = {
+      text: 'DELETE FROM playlists WHERE id = $1 RETURNING id',
+      values: [id],
+    };
+    const result = await this._pool.query(query);
+    if (!result.rows.length) {
+      throw new InvariantError('Playlist gagal dihapus');
+    }
+  }
 }
 
 module.exports = PlaylistsService;

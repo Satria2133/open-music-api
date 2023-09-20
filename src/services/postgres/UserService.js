@@ -20,7 +20,7 @@ class UserService {
     };
 
     const result = await this.pool.query(query);
-    return result.rows[0];
+    return result.rows[0].id;
   }
 
   async verifyUsername(username) {
@@ -34,8 +34,6 @@ class UserService {
     if (result.rows.length > 0) {
       throw new InvariantError('Gagal menambahkan user. Username sudah digunakan.');
     }
-
-    return result.rows[0].id;
   }
 
   async getUserById(userId) {
